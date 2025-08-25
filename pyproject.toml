@@ -19,4 +19,4 @@ dependencies = [
 ]
 
 [project.scripts]
-cartographer = "code_cartographer.__main__:main"
+code-cartographer = "code_cartographer.__main__:main"
