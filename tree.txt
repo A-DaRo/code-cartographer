@@ -1,0 +1,73 @@
+examples/
+└── sample_project_A/
+     ├── __init__.py
+     ├── main.py
+     ├── patterns.yml
+     └── services/
+        ├── __init__.py
+        └── payment_service.py
+
+pyproject.toml
+src/
+└── code_cartographer/
+    ├── __init__.py
+    ├── __main__.py
+    ├── exceptions.py
+    │
+    ├── metamodel/
+    │   ├── __init__.py
+    │   ├── elements.py
+    │   ├── model.py
+    │   └── relationship.py
+    │
+    ├── construction/
+    │   ├── __init__.py
+    │   ├── builders.py
+    │   └── visitors.py
+    │
+    ├── query_control/
+    │   ├── __init__.py
+    │   ├── commands.py
+    │   ├── facade.py
+    │   ├── query.py
+    │   └── view_state.py
+    │
+    └── presentation/
+        ├── __init__.py
+        ├── renderers.py
+        └── serializers.py
+
+tests/
+├── __init__.py
+├── conftest.py
+├── fixtures/
+│   └── test_project_basic/
+│       ├── __init__.py
+│       ├── app.py
+│       └── models/
+│           ├── __init__.py
+│           └── user.py
+├── construction/
+│   └── test_builders.py
+└── query_control/
+    └── test_facade.py
+
+
+
+frontend/
+├── public/
+│   └── index.html
+├── src/
+│   ├── api/
+│   │   └── client.ts
+│   ├── components/
+│   │   ├── Controls.tsx
+│   │   └── GraphView.tsx
+│   ├── state/
+│   │   ├── AppContext.tsx
+│   │   ├── actions.ts
+│   │   └── reducer.ts
+│   ├── App.tsx
+│   └── main.tsx
+├── package.json
+└── tsconfig.json
