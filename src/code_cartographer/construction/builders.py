@@ -58,7 +58,7 @@ class AstModelBuilder(IModelBuilder):
             raise SourceNotFoundError(f"Source path {root_path} is not a valid directory.")
 
         model = Metamodel(project_name)
-        python_files = self._find_python_files(root_path / project_name)
+        python_files = self._find_python_files(root_path)
 
         parsed_files = {}
         for py_file in python_files:
@@ -79,8 +79,13 @@ class AstModelBuilder(IModelBuilder):
         # Relationship Pass
         relationship_visitor = RelationshipVisitor(model)
         for py_file, tree in parsed_files.items():
-            module_fqn = self._path_to_fqn(py_file.relative_to(root_path))
-            module_unit = model.get_element_by_fqn(module_fqn)
+            relative_module_fqn = self._path_to_fqn(py_file.relative_to(root_path))
+            if relative_module_fqn:
+                absolute_module_fqn = f"{project_name}.{relative_module_fqn}"
+            else:
+                absolute_module_fqn = project_name
+
+            module_unit = model.get_element_by_fqn(absolute_module_fqn)
             if module_unit:
                 relationship_visitor.visit_module(module_unit, tree)
 

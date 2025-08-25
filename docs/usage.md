@@ -42,17 +42,18 @@ Here are several recipes to solve common software development and architecture t
 We will use the `textual` renderer to get an ASCII-art style tree.
 
 ```sh
-code-cartographer query \
+code-cartographer query . \
   --root my_project.services.PaymentService \
   --depth 1 \
   --renderer text
 ```
 
 **How It Works**:
-*   `query`: We are asking for a static output.
+*   `query .`: We are asking for a static output, analyzing the project in the current directory.
 *   `--root my_project.services.PaymentService`: We set our focus on the `PaymentService` class.
 *   `--depth 1`: We only want to see classes that are directly connected to `PaymentService` (one step away).
-*   `--renderer text`: We specify the output should be plain text printed to the console.
+*   `--renderer text`: We specify the output should be plain text. Since no `--output` is provided, it will be printed directly to your terminal.
+
 
 **Expected Output**:
 The output is a clean, hierarchical summary designed for easy reading in a terminal.
@@ -74,16 +75,18 @@ my_project.services.PaymentService
 We will use the default `graphviz` renderer and specify an SVG output file.
 
 ```sh
-code-cartographer query \
+code-cartographer query . \
   --root my_project.services \
   --depth 2 \
   --output services_architecture.svg
 ```
 
 **How It Works**:
+*   `query .`: We are asking for a static output, analyzing the project in the current directory.
 *   `--root my_project.services`: We start our analysis at the package level. The tool will show all classes within this package and their connections.
 *   `--depth 2`: We want to see the classes within the `services` package, their direct relationships, and the classes one step beyond that.
 *   `--output services_architecture.svg`: The file extension `.svg` tells the `graphviz` renderer to produce a Scalable Vector Graphics file. If you used `.png`, it would produce a PNG image.
+
 
 **Expected Output**:
 A file named `services_architecture.svg` is created in your current directory. When opened, it will look like this (conceptually):

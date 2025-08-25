@@ -14,3 +14,4 @@ class ViewState:
     """
     nodes: List[Dict[str, Any]] = field(default_factory=list)
     edges: List[Dict[str, Any]] = field(default_factory=list)
+    root_fqns: List[str] = field(default_factory=list)

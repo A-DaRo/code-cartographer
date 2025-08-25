@@ -25,6 +25,11 @@ class Metamodel:
         # The root package must also be registered
         self.register_element(self.root_package)
 
+    @property
+    def registry(self) -> Dict[str, CodeUnit]:
+        """Provides read-only public access to the FQN registry."""
+        return self._fqn_registry
+
     def register_element(self, element: CodeUnit) -> None:
         """
         Registers a CodeUnit in the FQN registry.
@@ -42,7 +47,8 @@ class Metamodel:
 
     def register_relationship(self, relationship: Relationship) -> None:
         """Adds a Relationship to the relationship registry."""
-        self._relationship_registry.append(relationship)
+        if relationship not in self._relationship_registry:
+            self._relationship_registry.append(relationship)
 
     def get_element_by_fqn(self, fqn: str) -> Optional[CodeUnit]:
         """

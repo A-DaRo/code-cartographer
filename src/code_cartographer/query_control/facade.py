@@ -52,6 +52,12 @@ class AnalysisFacade:
         desired view and returns a ViewState Data Transfer Object (DTO)
         containing the results. The method is responsible for traversing the
         Metamodel graph according to the query's parameters.
+        
+        The traversal algorithm explores two types of connections:
+        1. Structural Children: Navigating from a package to its modules/sub-packages,
+           or a module to its classes. This does not increase the traversal depth.
+        2. Relational Edges: Following relationships like inheritance or composition.
+           This *does* increase the traversal depth.
         """
         if self._model is None:
             raise ModelStateError("No project is loaded.")
@@ -69,42 +75,48 @@ class AnalysisFacade:
             if not element:
                 continue
             
+            # Add the current element to the results.
             nodes_to_render[current_fqn] = self._serialize_element(element)
 
+            # --- Structural Traversal ---
+            # If the element is a container (package/module), add its children to the queue.
+            # This traversal does NOT increase depth.
+            if isinstance(element, (PackageUnit, ModuleUnit)):
+                for child in element.children:
+                    if child.fqn not in visited_fqns:
+                        visited_fqns.add(child.fqn)
+                        queue.append((child.fqn, current_depth))
+
+            # --- Relational Traversal ---
+            # If we are at the depth limit, we stop exploring further relationships.
             if current_depth >= query.depth:
                 continue
 
             relationships = self._model.get_relationships_for_fqn(current_fqn, direction='both')
-
             for rel in relationships:
                 if self._is_relationship_filtered(rel, query):
                     continue
                 
-                # Determine the 'other' side of the relationship
-                if rel.source_fqn == current_fqn:
-                    target_fqn = rel.target_fqn
-                else:
-                    target_fqn = rel.source_fqn
-                
-                # Ensure the edge is always represented in a canonical direction
-                # to avoid duplicates in the set
-                edge_tuple = tuple(sorted((rel.source_fqn, rel.target_fqn))) + (rel.type.name,)
+                edge_tuple = (rel.source_fqn, rel.target_fqn, rel.type.name)
                 edges_to_render.add(edge_tuple)
 
-                if target_fqn not in visited_fqns:
-                    visited_fqns.add(target_fqn)
-                    queue.append((target_fqn, current_depth + 1))
+                # Determine the "other" side of the relationship to continue the traversal.
+                node_to_visit_next = rel.target_fqn if rel.source_fqn == current_fqn else rel.source_fqn
+                
+                if node_to_visit_next not in visited_fqns:
+                    visited_fqns.add(node_to_visit_next)
+                    # This traversal *does* increase depth.
+                    queue.append((node_to_visit_next, current_depth + 1))
         
-        # Add all nodes that are part of the rendered edges
-        for source, target, _ in edges_to_render:
-            if source not in nodes_to_render:
-                element = self._model.get_element_by_fqn(source)
-                if element: nodes_to_render[source] = self._serialize_element(element)
-            if target not in nodes_to_render:
-                element = self._model.get_element_by_fqn(target)
-                if element: nodes_to_render[target] = self._serialize_element(element)
+        # After traversal, ensure all nodes that are part of an edge are in the final node list.
+        all_edge_fqns = {fqn for edge in edges_to_render for fqn in edge[:2]}
+        for fqn in all_edge_fqns:
+            if fqn not in nodes_to_render:
+                element = self._model.get_element_by_fqn(fqn)
+                if element:
+                    nodes_to_render[fqn] = self._serialize_element(element)
 
-        # Create final lists for the ViewState
+        # Create final lists for the ViewState.
         final_nodes = list(nodes_to_render.values())
         final_edges = [{
             'source_fqn': source,
@@ -112,7 +124,7 @@ class AnalysisFacade:
             'relationship_type': rel_type_name,
         } for source, target, rel_type_name in edges_to_render]
         
-        return ViewState(nodes=final_nodes, edges=final_edges)
+        return ViewState(nodes=final_nodes, edges=final_edges, root_fqns=query.root_fqns)
 
     def _serialize_element(self, element: CodeUnit) -> dict:
         """Converts a CodeUnit object to a serializable dictionary."""

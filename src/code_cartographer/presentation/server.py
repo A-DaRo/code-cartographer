@@ -62,8 +62,8 @@ class APIServer:
         )
 
     def _setup_routes(self):
-        self._app.get("/api/v1/status", self.get_status, tags=["Status"])
-        self._app.post("/api/v1/query", self.handle_query, tags=["Query"])
+        self._app.add_api_route("/api/v1/status", self.get_status, methods=["GET"], tags=["Status"])
+        self._app.add_api_route("/api/v1/query", self.handle_query, methods=["POST"], tags=["Query"])
 
     async def get_status(self) -> Dict[str, Any]:
         """Returns the current status of the server."""
