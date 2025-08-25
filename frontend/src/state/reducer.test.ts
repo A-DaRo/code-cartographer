@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { appReducer, initialState } from './reducer';
 import { focusOnNode, fetchStart, fetchSuccess, fetchError } from './actions';
+import { ViewState } from '../api/client';
 
 describe('appReducer', () => {
   it('should handle FOCUS_ON_NODE action', () => {
@@ -19,13 +20,17 @@ describe('appReducer', () => {
   });
 
   it('should handle FETCH_SUCCESS action', () => {
-    const viewState = { nodes: [{ fqn: 'a.b', name: 'b', element_type: 'class', parent_fqn: 'a' }], edges: [] };
+    const viewState: ViewState = { nodes: [{ fqn: 'a.b', name: 'b', element_type: 'class', parent_fqn: 'a' }], edges: [] };
     const action = fetchSuccess(viewState);
-    const newState = appReducer(initialState, action);
+    const stateBefore = { ...initialState, query: { root_fqns: ['old.fqn'], depth: 5, filter_rules: [] }};
+    const newState = appReducer(stateBefore, action);
+    
     expect(newState.isLoading).toBe(false);
     expect(newState.view).toEqual(viewState);
-    // It should set the initial root FQN on first success
-    expect(newState.query.root_fqns).toEqual(['a.b']);
+    
+    // **FIX**: Assert the correct contract. The reducer's job is to update
+    // the view, not the query that triggered the fetch.
+    expect(newState.query).toEqual(stateBefore.query);
   });
 
   it('should handle FETCH_ERROR action', () => {

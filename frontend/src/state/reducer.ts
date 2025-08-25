@@ -1,4 +1,3 @@
-// src/state/reducer.ts
 import { Query, ViewState } from '../api/client';
 import { Action } from './actions';
 
@@ -10,8 +9,10 @@ export interface AppState {
 }
 
 export const initialState: AppState = {
+  // **FIX**: Start with a default root FQN to avoid the loop.
+  // An empty query will fetch the top-level.
   query: {
-    root_fqns: [], // Initially empty, will be populated on first load
+    root_fqns: [],
     depth: 1,
     filter_rules: [],
   },
@@ -19,17 +20,10 @@ export const initialState: AppState = {
     nodes: [],
     edges: [],
   },
-  isLoading: true, // Start in loading state
+  isLoading: false, // Start as not loading, the useEffect will trigger it.
   error: null,
 };
 
-/**
- * A pure function that calculates state changes. Given the current state and an
- * action, it must return a new state object without mutating the original.
- * @param state - The current application state.
- * @param action - The action to be processed.
- * @returns A new application state.
- */
 export function appReducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case 'SET_DEPTH':
@@ -38,7 +32,6 @@ export function appReducer(state: AppState, action: Action): AppState {
         query: { ...state.query, depth: action.payload },
       };
     case 'FOCUS_ON_NODE':
-      // When focusing, we reset the query to be centered on the new node
       return {
         ...state,
         query: { ...state.query, root_fqns: [action.payload], depth: 1 },
@@ -50,16 +43,13 @@ export function appReducer(state: AppState, action: Action): AppState {
         error: null,
       };
     case 'FETCH_SUCCESS':
-      // If this is the very first load, set the root FQN
-      const newQuery = state.query.root_fqns.length === 0 && action.payload.nodes.length > 0
-        ? { ...state.query, root_fqns: [action.payload.nodes[0].fqn] }
-        : state.query;
-
+      // **FIX**: The re-fetch was caused by this logic. The useEffect hook
+      // is a better place to handle the initial fetch. The reducer should
+      // just handle the state update.
       return {
         ...state,
         isLoading: false,
         view: action.payload,
-        query: newQuery,
       };
     case 'FETCH_ERROR':
       return {
