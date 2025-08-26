@@ -9,8 +9,6 @@ export interface AppState {
 }
 
 export const initialState: AppState = {
-  // **FIX**: Start with a default root FQN to avoid the loop.
-  // An empty query will fetch the top-level.
   query: {
     root_fqns: [],
     depth: 1,
@@ -20,43 +18,59 @@ export const initialState: AppState = {
     nodes: [],
     edges: [],
   },
-  isLoading: false, // Start as not loading, the useEffect will trigger it.
+  isLoading: false,
   error: null,
 };
 
 export function appReducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case 'SET_DEPTH':
+      // Only re-fetch if the depth actually changes
+      if (state.query.depth === action.payload) {
+        return state;
+      }
       return {
         ...state,
         query: { ...state.query, depth: action.payload },
       };
+      
     case 'FOCUS_ON_NODE':
       return {
         ...state,
+        // Reset depth to 1 when focusing on a new node for a clean view
         query: { ...state.query, root_fqns: [action.payload], depth: 1 },
       };
+
+    case 'SET_INITIAL_ROOTS':
+      return {
+        ...state,
+        query: {
+          ...state.query,
+          root_fqns: action.payload, // This updates the state
+        },
+      };
+
     case 'FETCH_START':
       return {
         ...state,
         isLoading: true,
         error: null,
       };
+      
     case 'FETCH_SUCCESS':
-      // **FIX**: The re-fetch was caused by this logic. The useEffect hook
-      // is a better place to handle the initial fetch. The reducer should
-      // just handle the state update.
       return {
         ...state,
         isLoading: false,
         view: action.payload,
       };
+      
     case 'FETCH_ERROR':
       return {
         ...state,
         isLoading: false,
         error: action.payload,
       };
+      
     default:
       return state;
   }

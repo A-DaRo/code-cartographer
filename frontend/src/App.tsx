@@ -1,37 +1,61 @@
-import React, { useContext, useEffect } from 'react';
+import React, { useContext, useEffect, useRef } from 'react';
 import { AppContext } from './state/AppContext';
-import { executeQuery } from './api/client';
-import { fetchStart, fetchSuccess, fetchError } from './state/actions';
+import { ApiClient } from './api/client';
+import { fetchStart, fetchSuccess, fetchError, setInitialRoots } from './state/actions';
 import { GraphView } from './components/GraphView';
 import { Controls } from './components/Controls';
 
 function App() {
   const { state, dispatch } = useContext(AppContext);
+  const hasFetchedInitialInfo = useRef(false);
 
-  // **FIX**: This single useEffect hook handles both the initial data load
-  // and all subsequent updates when the query state changes. This is the
-  // canonical and most robust approach.
+  // Effect 1: Runs ONCE on mount to get the project info and set the first query.
+  // This bootstraps the entire application.
   useEffect(() => {
+    if (hasFetchedInitialInfo.current) return;
+    hasFetchedInitialInfo.current = true;
+
+    const fetchInitialInfo = async () => {
+      try {
+        const info = await ApiClient.getProjectInfo();
+        // Dispatch the action to set the initial query roots.
+        dispatch(setInitialRoots(info.root_fqns));
+      } catch (error: any) {
+        const errorMessage = error.message || 'Failed to load initial project info.';
+        dispatch(fetchError(errorMessage));
+      }
+    };
+
+    fetchInitialInfo();
+  }, [dispatch]); // Dependency array ensures this effect runs only once.
+
+  // Effect 2: Runs whenever the query state changes. This is triggered by the
+  // bootstrap effect above, and then by any subsequent user interaction.
+  useEffect(() => {
+    // Guard: Don't run the query if the root_fqns are not yet populated.
+    if (state.query.root_fqns.length === 0) {
+      return;
+    }
+
     const abortController = new AbortController();
 
     const fetchData = async () => {
       dispatch(fetchStart());
       try {
-        // This will send the default query on initial mount, and the
-        // updated query on subsequent changes.
-        const newViewState = await executeQuery(state.query, abortController.signal);
+        const newViewState = await ApiClient.executeQuery(state.query, abortController.signal);
         dispatch(fetchSuccess(newViewState));
       } catch (error: any) {
         if (error.name !== 'AbortError') {
-          dispatch(fetchError(error.message || 'An unknown error occurred.'));
+          const errorMessage = error.message || 'An unknown error occurred while fetching data.';
+          dispatch(fetchError(errorMessage));
         }
       }
     };
 
     fetchData();
 
-    // The cleanup function cancels the in-flight request if state.query
-    // changes again before the current request is complete.
+    // Cleanup function: If the query changes again before this request is complete,
+    // cancel the in-flight request.
     return () => {
       abortController.abort();
     };

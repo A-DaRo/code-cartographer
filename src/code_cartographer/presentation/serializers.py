@@ -36,5 +36,5 @@ class JsonSerializer:
         """
         serialized = edge_data.copy()
         # The relationship_type is an Enum member; convert it to its string value
-        serialized['relationship_type'] = str(serialized['relationship_type'].value)
+        serialized['relationship_type'] = serialized['relationship_type'].name
         return serialized

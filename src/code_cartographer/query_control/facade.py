@@ -45,6 +45,24 @@ class AnalysisFacade:
         """
         new_model = self._builder.build(root_path, project_name)
         self._model = new_model
+    
+    def get_project_info(self) -> dict:
+        """
+        Returns basic information about the loaded project, including its
+        top-level packages.
+        """
+        if self._model is None:
+            raise ModelStateError("No project is loaded.")
+
+        # The root of the metamodel is the project unit itself.
+        project_root = self._model.get_root()
+        # return the FQN of the root itself in a list.
+        root_fqns = [project_root.fqn]
+        
+        return {
+            "project_name": project_root.name,
+            "root_fqns": root_fqns,
+        }
 
     def execute_query(self, query: Query) -> ViewState:
         """
@@ -97,7 +115,7 @@ class AnalysisFacade:
                 if self._is_relationship_filtered(rel, query):
                     continue
                 
-                edge_tuple = (rel.source_fqn, rel.target_fqn, rel.type.name)
+                edge_tuple = (rel.source_fqn, rel.target_fqn, rel.type)
                 edges_to_render.add(edge_tuple)
 
                 # Determine the "other" side of the relationship to continue the traversal.
@@ -121,9 +139,9 @@ class AnalysisFacade:
         final_edges = [{
             'source_fqn': source,
             'target_fqn': target,
-            'relationship_type': rel_type_name,
-        } for source, target, rel_type_name in edges_to_render]
-        
+            'relationship_type': rel_type,
+        } for source, target, rel_type in edges_to_render]
+
         return ViewState(nodes=final_nodes, edges=final_edges, root_fqns=query.root_fqns)
 
     def _serialize_element(self, element: CodeUnit) -> dict:

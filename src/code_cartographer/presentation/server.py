@@ -62,8 +62,14 @@ class APIServer:
         )
 
     def _setup_routes(self):
+        self._app.add_api_route("/api/v1/project-info", self.get_project_info, methods=["GET"], tags=["Project"])
         self._app.add_api_route("/api/v1/status", self.get_status, methods=["GET"], tags=["Status"])
         self._app.add_api_route("/api/v1/query", self.handle_query, methods=["POST"], tags=["Query"])
+
+    async def get_project_info(self) -> Dict[str, Any]:
+        """Returns the project's name and top-level FQNs."""
+        project_info = self._facade.get_project_info()
+        return project_info
 
     async def get_status(self) -> Dict[str, Any]:
         """Returns the current status of the server."""
@@ -77,8 +83,24 @@ class APIServer:
         The main API endpoint. It accepts a query, executes it via the
         facade, and returns a serialized ViewState.
         """
-        # Convert from Pydantic model to internal dataclass
-        internal_query = query.to_internal()
+        project_name = self._facade.get_project_info()["project_name"]
+        
+        normalized_fqns = []
+        for fqn in query.root_fqns:
+            # This logic is identical to the one in __main__.py
+            if fqn == '.' or fqn == project_name:
+                normalized_fqns.append(project_name)
+            elif fqn.startswith(f"{project_name}."):
+                normalized_fqns.append(fqn)
+            else:
+                normalized_fqns.append(f"{project_name}.{fqn}")
+        
+        # Create a new query object with the corrected FQNs
+        internal_query = InternalQuery(
+            root_fqns=normalized_fqns,
+            depth=query.depth,
+            filter_rules=query.filter_rules,
+        )
         
         view_state = self._facade.execute_query(internal_query)
         
@@ -89,5 +111,5 @@ class APIServer:
     def run(self, host: str = "127.0.0.1", port: int = 8000):
         """Starts the Uvicorn web server."""
         print(f"🚀 Starting Code Cartographer server at http://{host}:{port}")
-        print("📝 API documentation available at http://{host}:{port}/docs")
+        print(f"📝 API documentation available at http://{host}:{port}/docs")
         uvicorn.run(self._app, host=host, port=port)

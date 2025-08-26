@@ -81,3 +81,7 @@ class Metamodel:
             elif is_incoming and rel.target_fqn == fqn:
                 results.append(rel)
         return results
+    
+    def get_root(self) -> PackageUnit:
+        """Returns the root package of the metamodel."""
+        return self.root_package
